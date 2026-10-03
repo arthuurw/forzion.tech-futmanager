@@ -1,3 +1,4 @@
+import { BOARD_PATIENCE } from "./career";
 import { migrateSave } from "./migrate";
 import { NEWS_LIMIT } from "./news";
 import { DIFFICULTIES, type Difficulty, type GameState } from "./types";
@@ -70,10 +71,16 @@ function hasGameShape(state: unknown): state is GameState {
     user !== undefined &&
     isObject(user.lineup) &&
     hasJobShape(state.pendingJob, clubIds, userClubId) &&
+    (state.boardWarnings === undefined || isIntIn(state.boardWarnings, 0, BOARD_PATIENCE - 1)) &&
     (state.difficulty === undefined || DIFFICULTIES.includes(state.difficulty as Difficulty)) &&
     optionalList(state.career, Infinity, (m) => isCareerMove(m, clubIds)) &&
     optionalList(state.news, NEWS_LIMIT, (n) => isNewsItem(n, clubIds))
   );
+}
+
+/** Ajustes-importacao: an integer from `min` to `max`, the range the engine writes. */
+function isIntIn(v: unknown, min: number, max = Infinity): boolean {
+  return Number.isInteger(v) && (v as number) >= min && (v as number) <= max;
 }
 
 /** Validacao-importacao: an optional list is absent, or at most `max` items that each pass. */
@@ -84,43 +91,44 @@ function optionalList(list: unknown, max: number, isItem: (item: Record<string, 
 /** Validacao-importacao C2: a club change between two clubs of the game. */
 function isCareerMove(m: Record<string, unknown>, clubIds: ReadonlySet<string>): boolean {
   const isClubId = (id: unknown) => typeof id === "string" && clubIds.has(id);
-  return Number.isInteger(m.season) && Number.isInteger(m.round) && isClubId(m.fromId) && isClubId(m.toId) && (m.reason === "fired" || m.reason === "offer");
+  return isIntIn(m.season, 1) && isIntIn(m.round, 0) && isClubId(m.fromId) && isClubId(m.toId) && (m.reason === "fired" || m.reason === "offer");
 }
 
 /** Validacao-importacao C3: the fields of the news kind the screens read; clubs must be of the game. */
 function isNewsItem(n: Record<string, unknown>, clubIds: ReadonlySet<string>): boolean {
   const isClubId = (id: unknown) => typeof id === "string" && clubIds.has(id);
-  const isName = typeof n.playerName === "string";
+  const isName = typeof n.playerName === "string" && n.playerName.trim() !== "";
+  const isAmount = typeof n.amount === "number" && Number.isFinite(n.amount) && n.amount >= 0;
   const d = n.date;
-  const date = isObject(d) && (d.kind === "league" ? Number.isInteger(d.round) : d.kind === "cup" && typeof d.cupId === "string" && Number.isInteger(d.phase));
-  if (!Number.isInteger(n.season) || !date) return false;
+  const date = isObject(d) && (d.kind === "league" ? isIntIn(d.round, 1) : d.kind === "cup" && typeof d.cupId === "string" && isIntIn(d.phase, 0));
+  if (!isIntIn(n.season, 1) || !date) return false;
   switch (n.kind) {
     case "injury":
-      return isName && Number.isInteger(n.rounds);
+      return isName && isIntIn(n.rounds, 1);
     case "suspension":
-      return isName && Number.isInteger(n.rounds) && (n.cupId === undefined || typeof n.cupId === "string");
+      return isName && isIntIn(n.rounds, 1) && (n.cupId === undefined || typeof n.cupId === "string");
     case "rating":
       return isName && Number.isInteger(n.rating) && (n.delta === 1 || n.delta === -1);
     case "offer":
-      return isName && isClubId(n.clubId) && Number.isFinite(n.amount);
+      return isName && isClubId(n.clubId) && isAmount;
     case "transfer":
-      return isName && isClubId(n.fromId) && isClubId(n.toId) && Number.isFinite(n.amount);
+      return isName && isClubId(n.fromId) && isClubId(n.toId) && isAmount;
     case "board":
-      return Number.isInteger(n.warnings);
+      return isIntIn(n.warnings, 1, BOARD_PATIENCE - 1);
     case "job":
       return Array.isArray(n.clubIds) && n.clubIds.length > 0 && n.clubIds.every(isClubId);
     case "cup":
-      return typeof n.cupId === "string" && Number.isInteger(n.phase) && ["advanced", "champion", "out"].includes(n.result as string) && isClubId(n.opponentId);
+      return typeof n.cupId === "string" && isIntIn(n.phase, 0) && ["advanced", "champion", "out"].includes(n.result as string) && isClubId(n.opponentId);
     default:
       return false;
   }
 }
 
-/** Carreira-dinamica AC 26: a pending offer names other clubs of the game, or is absent. */
+/** Carreira-dinamica AC 26: a pending offer names other clubs of the game, or is absent. Ajustes-importacao C2: at least one. */
 function hasJobShape(job: unknown, clubIds: ReadonlySet<string>, userClubId: string): boolean {
   if (job === undefined) return true;
   if (!isObject(job) || (job.reason !== "fired" && job.reason !== "offer") || !Array.isArray(job.clubIds)) return false;
-  return job.clubIds.every((id) => typeof id === "string" && id !== userClubId && clubIds.has(id));
+  return job.clubIds.length > 0 && job.clubIds.every((id) => typeof id === "string" && id !== userClubId && clubIds.has(id));
 }
 
 /** Reads an exported file: the envelope, then `migrateSave`, then the shape of the game. */

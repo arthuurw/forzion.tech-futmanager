@@ -306,6 +306,96 @@ describe("notícias no arquivo (noticias)", () => {
     for (const [name, news] of cases) expect(decodeSaveFile(envelope({ ...g, news })), name).toEqual({ kind: "malformed" });
     expect(decodeSaveFile(envelope({ ...g, news: valid })).kind).toBe("ok");
   });
+
+  test("notícias no arquivo recusa valores fora do motor", () => {
+    // C4 of ajustes-importacao (L-005, L-007): bounds the engine never crosses, one field at a time,
+    // next to the edge values it does write.
+    const g = withClub(6);
+    const valid = newsOfEveryKind(g);
+    const at = (kind: string) => valid.findIndex((n) => n.kind === kind);
+    const cupAt = valid.findIndex((n) => n.date.kind === "cup");
+    const edit = (i: number, change: Record<string, unknown>) => valid.map((n, j) => (j === i ? { ...n, ...change } : n));
+    const refused: [string, unknown][] = [
+      ["season 0", edit(0, { season: 0 })],
+      ["data de liga round 0", edit(0, { date: { kind: "league", round: 0 } })],
+      ["data de copa phase -1", edit(cupAt, { date: { kind: "cup", cupId: "cup-nat", phase: -1 } })],
+      ["injury rounds 0", edit(at("injury"), { rounds: 0 })],
+      ["suspension rounds 0", edit(at("suspension"), { rounds: 0 })],
+      ["board warnings 0", edit(at("board"), { warnings: 0 })],
+      ["board warnings 4", edit(at("board"), { warnings: 4 })],
+      ["offer amount -1", edit(at("offer"), { amount: -1 })],
+      ["transfer amount -1", edit(at("transfer"), { amount: -1 })],
+      ["cup phase -1", edit(at("cup"), { phase: -1 })],
+      ["injury playerName vazio", edit(at("injury"), { playerName: "" })],
+      ["suspension playerName vazio", edit(at("suspension"), { playerName: "" })],
+      ["rating playerName vazio", edit(at("rating"), { playerName: "" })],
+      ["offer playerName vazio", edit(at("offer"), { playerName: "" })],
+      ["transfer playerName vazio", edit(at("transfer"), { playerName: "" })],
+      ["injury playerName só espaços", edit(at("injury"), { playerName: "  " })],
+    ];
+    expect(refused).toHaveLength(16);
+    for (const [name, news] of refused) expect(decodeSaveFile(envelope({ ...g, news })), name).toEqual({ kind: "malformed" });
+    const accepted: [string, unknown][] = [
+      ["season 1", edit(0, { season: 1 })],
+      ["data de liga round 1", edit(0, { date: { kind: "league", round: 1 } })],
+      ["data de copa phase 0", edit(cupAt, { date: { kind: "cup", cupId: "cup-nat", phase: 0 } })],
+      ["injury rounds 1", edit(at("injury"), { rounds: 1 })],
+      ["board warnings 1", edit(at("board"), { warnings: 1 })],
+      ["board warnings 3", edit(at("board"), { warnings: 3 })],
+      ["offer amount 0", edit(at("offer"), { amount: 0 })],
+      ["transfer amount 0", edit(at("transfer"), { amount: 0 })],
+    ];
+    expect(accepted).toHaveLength(8);
+    for (const [name, news] of accepted) {
+      const s = { ...g, news } as GameState;
+      expect(decodeSaveFile(encodeSaveFile(s, ISO)), name).toEqual({ kind: "ok", state: s });
+    }
+  });
+});
+
+describe("ajustes da importação (ajustes-importacao)", () => {
+  test("proposta pendente sem clubes", () => {
+    // C2: an empty list is refused for both reasons; one club of another league imports unchanged.
+    const g = withClub(8);
+    const other = g.leagues[1]!.clubs[0]!.id;
+    for (const reason of ["fired", "offer"] as const) {
+      expect(decodeSaveFile(envelope({ ...g, pendingJob: { reason, clubIds: [] } })), reason).toEqual({ kind: "malformed" });
+      const s: GameState = { ...g, pendingJob: { reason, clubIds: [other] } };
+      expect(decodeSaveFile(encodeSaveFile(s, ISO)), reason).toEqual({ kind: "ok", state: s });
+    }
+  });
+
+  test("avisos da diretoria no arquivo", () => {
+    // C3 (L-005, L-007): absent and 0..3 import unchanged; anything else is refused.
+    const g = withClub(8);
+    expect("boardWarnings" in g).toBe(false);
+    expect(decodeSaveFile(encodeSaveFile(g, ISO))).toEqual({ kind: "ok", state: g });
+    for (const boardWarnings of [0, 1, 3]) {
+      const s = { ...g, boardWarnings };
+      expect(decodeSaveFile(encodeSaveFile(s, ISO)), String(boardWarnings)).toEqual({ kind: "ok", state: s });
+    }
+    for (const boardWarnings of [-1, 4, 1.5, "1", null]) {
+      expect(decodeSaveFile(envelope({ ...g, boardWarnings })), String(boardWarnings)).toEqual({ kind: "malformed" });
+    }
+  });
+
+  test("carreira no arquivo recusa valores fora do motor", () => {
+    // C5: season 0 and round -1 are refused; season 1 and round 0 import unchanged.
+    const g = withClub(8);
+    const [x, y] = [g.leagues[0]!.clubs[6]!.id, g.leagues[1]!.clubs[1]!.id];
+    const moves: NonNullable<GameState["career"]> = [
+      { season: 1, round: 14, fromId: y, toId: x, reason: "fired" },
+      { season: 2, round: 38, fromId: x, toId: g.userClubId!, reason: "offer" },
+    ];
+    const edit = (change: Record<string, unknown>) => [moves[0], { ...moves[1], ...change }];
+    for (const [name, career] of [["season 0", edit({ season: 0 })], ["round -1", edit({ round: -1 })]] as const) {
+      expect(decodeSaveFile(envelope({ ...g, career })), name).toEqual({ kind: "malformed" });
+    }
+    for (const [name, career] of [["season 1", edit({ season: 1 })], ["round 0", edit({ round: 0 })]] as const) {
+      const s = { ...g, career } as GameState;
+      expect(decodeSaveFile(encodeSaveFile(s, ISO)), name).toEqual({ kind: "ok", state: s });
+    }
+  });
 });
 
 describe("dificuldade no arquivo (dificuldade)", () => {
