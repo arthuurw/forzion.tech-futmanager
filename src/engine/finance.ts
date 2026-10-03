@@ -10,6 +10,8 @@ export const EXPANSION_SEATS = 5_000;
 export const EXPANSION_ROUNDS = 6;
 export const MAX_CAPACITY = 80_000;
 export const LOAN_STEP = 500_000;
+/** A club may owe up to this many times its starting cash. */
+export const LOAN_LIMIT_CASH = 2;
 const INTEREST_RATE = 0.015;
 /** Sponsorship tops the expected home gate up to this share of the payroll (AC 13). */
 const SPONSORSHIP_TARGET = 1.0;
@@ -82,7 +84,7 @@ export function initialFinance(players: readonly Player[]): Finance {
     ticketPrice: DEFAULT_TICKET_PRICE,
     expansionRoundsLeft: 0,
     loan: 0,
-    loanLimit: 2 * cash,
+    loanLimit: LOAN_LIMIT_CASH * cash,
     pendingIn: 0,
     pendingOut: 0,
     lastRound: null,

@@ -607,7 +607,8 @@ export const useGame = create<GameStore>()((set, get) => {
       const chosen = editUserClub({ ...game, userClubId: clubId, difficulty }, (club) => ({
         ...club,
         lineup: autoLineup(club, AI_FORMATION),
-        finance: { ...club.finance, cash: cash(club) },
+        // Ajustes-importacao C1: the loan limit follows the cash the level gave.
+        finance: { ...club.finance, cash: cash(club), loanLimit: finance.LOAN_LIMIT_CASH * cash(club) },
       }));
       // AC 30: the board sets the goal when the manager arrives.
       const next = { ...chosen, boardGoal: userBoardGoal(chosen), cupGoal: userCupGoal(chosen) };

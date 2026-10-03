@@ -144,4 +144,24 @@ describe("dificuldade na escolha do clube (dificuldade)", () => {
       expect(cashOf(saved, other), level).toBe(cashOf(game, other));
     }
   });
+
+  test("teto de empréstimo pela dificuldade", async () => {
+    // C1 of ajustes-importacao (L-003, L-005): the chosen club's loan limit is twice the cash the
+    // level gave it; another club keeps the generated one.
+    const cases: ["Fácil" | "Normal" | "Difícil", (limit: number) => number][] = [
+      ["Fácil", (l) => 2 * l],
+      ["Normal", (l) => l],
+      ["Difícil", (l) => 2 * Math.round(l / 2 / 2 / 100_000) * 100_000],
+    ];
+    for (const [level, expected] of cases) {
+      resetAll();
+      const { game, saved } = await choose(level);
+      const id = saved.userClubId!;
+      const financeOf = (s: typeof game, clubId: string) => s.leagues.flatMap((l) => l.clubs).find((c) => c.id === clubId)!.finance;
+      expect(financeOf(saved, id).loanLimit, level).toBe(2 * financeOf(saved, id).cash);
+      expect(financeOf(saved, id).loanLimit, level).toBe(expected(financeOf(game, id).loanLimit));
+      const other = game.leagues[0]!.clubs.find((c) => c.id !== id)!.id;
+      expect(financeOf(saved, other).loanLimit, level).toBe(financeOf(game, other).loanLimit);
+    }
+  });
 });
