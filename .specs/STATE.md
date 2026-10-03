@@ -46,10 +46,10 @@ Candidatas propostas em 02/10/2026 e não escolhidas ainda (o autor escolheu as 
 
 ## Handoff
 
-**Feature**: validacao-importacao verificada (round 1 FAIL por 7 campos de notícia sem prova; round 2 PASS 4/4, b30cb2f..51c058f): a importação recusa como `malformed` `difficulty` fora dos 3 níveis, `career` e `news` fora da forma do motor ou com id de clube que não é do jogo, e `news` com mais de 60 itens. Antes: offline-instalar (AD-027), noticias (AD-028) e dificuldade (AD-029) verificadas e publicadas
-**Where**: publicado em `main` (deploy do Actions verde de 7ba9601, 02/10/2026); no ar em https://arthuurw.github.io/forzion.tech-futmanager/
-**In progress**: nada
-**Next step**: escolher a próxima feature (ver Backlog). Fora do escopo e anotados pelo Verifier: `hasJobShape` aceita `pendingJob.clubIds` vazio; `boardWarnings` não é validado; inteiros negativos, `amount` negativo e `playerName` vazio passam (dentro do tipo, não quebram a tela). Pontos fracos de dificuldade, noticias e offline-instalar: ver `.specs/features/*/verification.md` (destaques: `loanLimit` não acompanha o caixa do nível; `ignoreVary` provado só pelo `check:offline`, L-033)
+**Feature**: ajustes-importacao verificada (round 1 PASS 5/5, e66b3c7..7b4c807): o teto de empréstimo do clube escolhido é `2 ×` o caixa já ajustado pelo nível (`LOAN_LIMIT_CASH`); a importação recusa como `malformed` `pendingJob.clubIds` vazio, `boardWarnings` fora de 0..3 e, em notícias e carreira, `season`/`round` abaixo de 1 (carreira: `round` abaixo de 0), `phase` abaixo de 0, `rounds` abaixo de 1, `warnings` fora de 1..3, `amount` negativo e `playerName` em branco. Antes: validacao-importacao, offline-instalar (AD-027), noticias (AD-028) e dificuldade (AD-029), publicadas
+**Where**: commits locais em `main`, ainda não publicados (push precisa do ok do autor)
+**In progress**: brainstorm de «Pênaltis durante o jogo e cobrador» (design proposto em chat, esperando aprovação do autor)
+**Next step**: aprovado o design, escrever `.specs/features/penaltis/plan.md`. Pontos fracos de ajustes-importacao em `.specs/features/ajustes-importacao/verification.md` (dois aceites de borda de C4 não mudam nada; o «outro clube» de C1 sai de `leagues[0]` por causa da seed fixa)
 **Blockers**: none
 **Uncommitted**: nenhum
 **Branch**: main
