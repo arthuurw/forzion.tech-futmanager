@@ -16,7 +16,9 @@ beforeEach(resetAll);
 describe("tela Fim", () => {
   test("fim mostra campeão sem Jogar rodada", async () => {
     const user = userEvent.setup();
-    const game = seededGame(6, 1, 37);
+    // Penaltis (Superseded checks): club 1 of seed 6 is now fired before round 38; club 2 is not.
+    const game = seededGame(6, 2, 37);
+    expect(game.pendingJob).toBeUndefined();
     useGame.setState({ phase: "squad", game, hasSave: true });
     render(<App />);
     expect(screen.getByText("Rodada 38 de 38")).toBeInTheDocument();
@@ -28,7 +30,10 @@ describe("tela Fim", () => {
     const final = useGame.getState().game!.leagues[0]!;
     expect(final.currentRound).toBe(38);
     const table = computeTable(final);
-    expect(screen.getByText(`Campeão: ${table[0]!.name}`)).toBeInTheDocument();
+    // Penaltis (Superseded checks): this champion also won a cup, whose card reads the same line.
+    const game2 = useGame.getState().game!;
+    const cupTitles = game2.cups.filter((c) => c.phases.at(-1)!.ties[0]!.winnerId === table[0]!.clubId).length;
+    expect(screen.getAllByText(`Campeão: ${table[0]!.name}`)).toHaveLength(1 + cupTitles);
     const rows = within(screen.getByRole("table", { name: "Classificação" })).getAllByRole("row").slice(1);
     expect(rows.map((r) => within(r).getAllByRole("cell")[1]!.textContent)).toEqual(table.map((r) => r.name));
     // Column J (index 3: #, Clube, P, J, ...) reads 38 for every club after a full season.

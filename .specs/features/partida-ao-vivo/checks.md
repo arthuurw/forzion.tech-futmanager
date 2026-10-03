@@ -166,7 +166,7 @@ Proof: `npx vitest run src/engine/balance.test.ts -t "forte contra fraco"`
 **C45** - O documento gravado tem `schemaVersion: 2`, e cada jogador tem `fitness`, `morale`, `injuryRounds`, `suspendedRounds`, `yellowCards` e `idleRounds` (door 1, door 7) - Superseded por elenco-mercado-financas C54
 Proof: `npx vitest run src/persistence/save.test.ts -t "documento tem schemaVersion 2 com condição"`
 
-**C46** - Cada um dos 10 tipos de evento ocorre ao menos uma vez em 200 rodadas simuladas e tem uma narração PT-BR distinta (plano Impact, `MatchEvent`)
+**C46** - Cada um dos 10 tipos de evento ocorre ao menos uma vez em 200 rodadas simuladas e tem uma narração PT-BR distinta (plano Impact, `MatchEvent`) - Superseded por penaltis C8
 Proof: `npx vitest run src/engine/live.test.ts -t "todos os 10 tipos de evento ocorrem e têm narração"`
 
 **C48** - Ao escalar um clube de IA, um jogador abaixo de 60 de condição fica fora quando há reserva disponível da mesma posição com 60 ou mais, e um com exatamente 60 continua titular (AC 45)

@@ -132,6 +132,23 @@ Proof: `npm run check:layout`
 - state transitions: C1 (marcação → cobrança no mesmo minuto)
 - observability: n/a - sem log no jogo; a narração é a saída visível (C5)
 
+## Superseded checks of earlier features
+
+Achados na build: o sorteio do pênalti muda o resultado de cada seed, e os testes abaixo dependiam de um cenário que uma seed dava por acaso. Em todos, a pré-condição do cenário é conferida no próprio teste ou foi buscada com o motor novo, e nenhum valor esperado nem faixa muda, salvo onde a linha diz.
+
+| Check | What changes | Now proven by |
+| --- | --- | --- |
+| partida-ao-vivo C46 / correcoes-validacao C61 (`live.test.ts` «todos os 10 tipos de evento…») | o conjunto passa a 11 tipos com `penalty`; o teste vira «todos os 11 tipos…» e as frases distintas passam a 11 (`match.test.ts`: 10 sem a substituição) | C8 |
+| paises C8 (`live.test.ts` «semente das ligas novas», snapshot v6) | só o campo `results` do `snapshot-v6.json` é regenerado com o motor novo (119 de 120 partidas mudam); o resto do fixture fica igual | C1 |
+| carreira-dinamica C9 (`career.test.ts` «assumir no meio da temporada») | o fixture passa da seed 3 à 27, a primeira com o 18º de meta 16 e o 5º de meta 12 depois de 13 rodadas; mesmos valores | C1 |
+| copa-nacional C63 (`migrate.test.ts` «sementes da migração da copa») | o replay da preliminar passa a usar a disponibilidade da copa, como `cupLive`: um suspenso na liga joga a copa (5 clubes da preliminar têm um agora) | C1 |
+| copa-nacional C49 (`Cup.test.tsx` «situação do usuário») | o campeão da nacional da seed 111 agora também joga a continental, e a tela abre nessa aba (copa-continental AC 16); o teste abre a aba da nacional antes de ler «Campeão» | C1 |
+| nucleo-liga-partida C34 (`End.test.tsx` «fim mostra campeão sem Jogar rodada») | o clube 1 da seed 6 é demitido antes da rodada 38 (8 de 21 jogos de teste antes, 10 de 21 agora); passa ao clube 2, conferido sem `pendingJob`; o campeão também ganhou uma copa, e as linhas «Campeão: …» são contadas como no teste ao lado | C1 |
+| ajustes-audio C5, C6 (`Live.test.tsx`, gol do usuário aos 90') | a seed 182 perdeu o gol; passa à 27, a primeira com gol do usuário aos 90' e sem parada obrigatória | C1 |
+| ajustes-audio C9 (`Live.test.tsx` «disputa de pênaltis soa pela tela ao vivo») | o confronto passa do 10º ao 4º da seed 3, o primeiro com disputa de 10 ou mais cobranças e sem parada obrigatória | C1 |
+| audio C26 / partida-ao-vivo C9 («rodada sem AudioContext», «fim da rodada ao vivo grava») | a seed 8 agora tem uma parada obrigatória do usuário, e o relógio livre não chega aos 90'; passam à seed 2, a primeira sem parada | C1 |
+| copa-continental C11 (`Live.test.tsx` «continental fecha sem tela») | a escalação do 1º clube da Série B (seed 132) fica inválida para a próxima data; passa ao 3º, o primeiro com escalação válida, fora da continental e não demitido | C1 |
+
 ## Handoff
 
 - S1 = `live.ts` 32 KB + `live.test.ts` 46 KB + `balance.test.ts` 26 KB + `types.ts` 13 KB + `sfx.test.ts` 10 KB + `match.test.ts`, `narration.ts`, `narration.test.ts`, `sfx.ts` 12 KB = 139 KB ÷ 4 ≈ 35k

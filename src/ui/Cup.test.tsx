@@ -80,6 +80,9 @@ describe("tela Copa", () => {
     second.unmount();
 
     show({ ...s, userClubId: cup.phases[5]!.ties[0]!.winnerId });
+    // Penaltis (Superseded checks): this champion also plays the continental, so the screen opens on
+    // that tab (copa-continental AC 16); the national cup's tab is the one under test.
+    fireEvent.click(screen.getByRole("tab", { name: cup.name }));
     expect(screen.getByText(/^Campeão/)).toBeInTheDocument();
     expect(screen.queryByText(/Na disputa|Eliminado/)).not.toBeInTheDocument();
   }, 60_000);

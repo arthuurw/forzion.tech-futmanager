@@ -414,7 +414,10 @@ describe("som ao vivo (audio)", () => {
     expect(liveMinute()).toBe(minute);
   }
 
-  /** Seed 182: the user's club scores at 90' in the first round (L-007: the goal the skip must not sound). */
+  /**
+   * Seed 27: the user's club scores at 90' in the first round (L-007: the goal the skip must not sound).
+   * Penaltis (Superseded checks): seed 182 lost that goal once penalties moved the scores.
+   */
   function userGoalAt90(): void {
     const live = useGame.getState().live!;
     const at90 = userMatch(runToEnd(live))!.events.filter((e) => e.minute === 90);
@@ -426,7 +429,7 @@ describe("som ao vivo (audio)", () => {
     for (const minute of [1, 89]) {
       cleanup();
       resetAll();
-      startOnFakeClock(182);
+      startOnFakeClock(27);
       runTo(minute);
       userGoalAt90();
       const from = backend.calls.length;
@@ -442,7 +445,7 @@ describe("som ao vivo (audio)", () => {
 
   test("tick do minuto 90 toca os eventos do minuto", () => {
     // C6 (AC 6): no skip, the clock runs from 89' to 90'.
-    startOnFakeClock(182);
+    startOnFakeClock(27);
     runTo(89);
     userGoalAt90();
     const from = backend.calls.length;
@@ -457,8 +460,8 @@ describe("som ao vivo (audio)", () => {
   test("disputa de pênaltis soa pela tela ao vivo", async () => {
     // Ajustes-audio C9 (AC 7, AC 9, L-003): the user home in a tie of the cup's second phase, level
     // at 90' and through on penalties. Copa-continental: the continental date after round 7 changes
-    // the squads before this phase, so the tie is now seed 3's tenth (7 x 6 on penalties).
-    startOnFakeClock(3, cupGame(3, 1, (s) => s.cups[0]!.phases[1]!.ties[9]!.homeId));
+    // the squads before this phase. Penaltis (Superseded checks): the tie is now seed 3's fourth.
+    startOnFakeClock(3, cupGame(3, 1, (s) => s.cups[0]!.phases[1]!.ties[3]!.homeId));
     runTo(89);
     expect(userMatch(runToEnd(useGame.getState().live!))!.penalties).not.toBeNull();
     const userId = useGame.getState().live!.userClubId!;
@@ -502,7 +505,8 @@ describe("som ao vivo (audio)", () => {
     // C26: jsdom has no AudioContext; the default backend.
     expect((window as { AudioContext?: unknown }).AudioContext).toBeUndefined();
     installAudio();
-    const user = await startLive(8);
+    // Penaltis (Superseded checks): seed 2, whose user plays to 90' with no forced stop (seed 8 now has one).
+    const user = await startLive(2);
     await user.click(await screen.findByRole("button", { name: "4x" }));
     await screen.findByText("Intervalo", {}, { timeout: 25000 });
     await user.click(screen.getByRole("button", { name: "Continuar" }));
@@ -527,7 +531,8 @@ describe("ao vivo na continental (copa-continental)", () => {
   test("continental fecha sem tela para quem não joga", async () => {
     // C11 (AC 11, L-007): a Série B club, never in a new game's continental cup.
     const user = userEvent.setup();
-    const game = cupGame(132, 0, (s) => s.leagues[1]!.clubs[0]!.id, 1);
+    // Penaltis (Superseded checks): the third club, whose eleven is valid for the next date (the first's is not).
+    const game = cupGame(132, 0, (s) => s.leagues[1]!.clubs[2]!.id, 1);
     expect(game.cups[1]!.seeding).not.toContain(game.userClubId);
     useGame.setState({ phase: "squad", game, hasSave: true });
     render(<App />);

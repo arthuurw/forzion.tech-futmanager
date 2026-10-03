@@ -335,11 +335,14 @@ describe("migração v4 -> v5 (copa-nacional)", () => {
     const players: Record<string, LivePlayer> = {};
     const clubs = new Map(s.leagues.flatMap((l) => l.clubs).map((c) => [c.id, c]));
     for (const c of clubs.values()) for (const p of c.players) players[p.id] = { ...p };
+    // Penaltis (Superseded checks): the cup's own availability, as `cupLive` plays it - a player
+    // suspended in the league plays the cup.
+    const competition = { kind: "cup", cupId: cup.id } as const;
     const side = (id: string) => {
       const club = clubs.get(id)!;
-      const lineup = aiLineup(club);
-      const starters = lineup.starters.map((pid) => (pid && isAvailable(club.players.find((p) => p.id === pid)!) ? pid : null));
-      const bench = club.players.filter((p) => isAvailable(p) && !starters.includes(p.id)).map((p) => p.id);
+      const lineup = aiLineup(club, competition);
+      const starters = lineup.starters.map((pid) => (pid && isAvailableFor(club.players.find((p) => p.id === pid)!, competition) ? pid : null));
+      const bench = club.players.filter((p) => isAvailableFor(p, competition) && !starters.includes(p.id)).map((p) => p.id);
       return makeSide(id, formationSlots(lineup.formation), starters, bench, players, { formation: lineup.formation });
     };
     const replay = (seedOf: (i: number) => number) =>

@@ -383,7 +383,7 @@ Proof: `npx vitest run src/deps.test.ts -t "motor sem dependência de UI"`
 
 Proof: `npx vitest run src/deps.test.ts -t "eslint barra as formas indiretas"`
 
-**C61** - ✓ `narration.test`:
+**C61** - ✓ `narration.test`: - Superseded por penaltis C8
 - uma tabela com a linha literal esperada de cada tipo de evento que `narrate` trata, todos, com nome de jogador e de clube;
 - os testes de match e live que percorrem os tipos afirmam que o texto não contém `playerId` nem `clubId` (AC 57, L-005).
 

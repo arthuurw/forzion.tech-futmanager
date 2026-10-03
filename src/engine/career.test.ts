@@ -173,9 +173,12 @@ describe("a diretoria avisa e demite (carreira-dinamica)", () => {
 });
 
 describe("trocar de clube no meio da temporada (carreira-dinamica)", () => {
-  /** Seed 3 after 13 rounds: the 18th's goal by strength is 16, the 5th's is 12. */
+  /**
+   * Seed 27 after 13 rounds: the 18th's goal by strength is 16, the 5th's is 12. Penaltis
+   * (Superseded checks): seed 3 lost that table once penalties moved the scores; same values.
+   */
   function firedAt13(): { s: GameState; table: string[] } {
-    const s = atRound(3, 13);
+    const s = atRound(27, 13);
     const table = tableIds(s, 0);
     s.season = 2;
     asUser(s, table[10]!, 8);

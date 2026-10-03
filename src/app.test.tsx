@@ -173,7 +173,8 @@ describe("fluxo do app", () => {
 
   test("fim da rodada ao vivo grava e mostra resultados", async () => {
     const user = userEvent.setup();
-    useGame.setState({ phase: "squad", game: seededGame(8), hasSave: true });
+    // Penaltis (Superseded checks): seed 2, whose user plays to 90' with no forced stop (seed 8 now has one).
+    useGame.setState({ phase: "squad", game: seededGame(2), hasSave: true });
     render(<App />);
     await user.click(screen.getByRole("button", { name: "Jogar rodada" }));
     // Let the clock run to 90' on its own, at 4x.
