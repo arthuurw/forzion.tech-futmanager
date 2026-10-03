@@ -109,6 +109,8 @@ export interface Lineup {
   formation: FormationName;
   starters: (string | null)[];
   posture: Posture;
+  /** Penaltis door 1: who takes the user's penalties; absent = Automático (the shoot-out's order). */
+  penaltyTaker?: string;
 }
 
 /** What a club earned and spent when the last round closed. Reais. */
@@ -385,6 +387,7 @@ export type MatchEventType =
   | "red"
   | "injury"
   | "substitution"
+  | "penalty"
   | "penalty_scored"
   | "penalty_missed";
 
@@ -400,6 +403,7 @@ export const MATCH_EVENT_TYPES: readonly MatchEventType[] = [
   "red",
   "injury",
   "substitution",
+  "penalty",
 ];
 
 /** Copa-nacional AC 15: only a knockout tie level at 90' has these, after the full-time whistle. */
@@ -413,4 +417,6 @@ export interface MatchEvent {
   playerId?: string;
   /** Substitution only: the one coming on. */
   playerInId?: string;
+  /** Penaltis door 2: a `goal`, `shot_saved` or `shot_missed` that is the kick of an in-play penalty. */
+  penalty?: true;
 }

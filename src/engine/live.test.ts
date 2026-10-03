@@ -17,10 +17,12 @@ import {
   substitute,
   userMatch,
   userStops,
+  penaltyTakers,
   type LivePlayer,
   type LiveRound,
   type LiveSide,
 } from "./live";
+import { simulateMatch, type TeamSheet } from "./match";
 import { narrate, narrationContext } from "./narration";
 import { createRng, mix32 } from "./rng";
 import { finishRound, playRound } from "./season";
@@ -311,7 +313,7 @@ describe("rodada ao vivo (engine)", () => {
     expect(effectiveRating({ ...p, morale: 2 }, "FW") / effectiveRating(p, "FW")).toBeCloseTo(1.06, 10);
   });
 
-  test("todos os 10 tipos de evento ocorrem e têm narração", () => {
+  test("todos os 11 tipos de evento ocorrem e têm narração", () => {
     const seen = new Map<MatchEventType, string>();
     const base = game(1);
     // Every league plays in the round: the context has every club (correcoes-validacao C61).
@@ -329,9 +331,11 @@ describe("rodada ao vivo (engine)", () => {
         }
       }
     }
-    expect(MATCH_EVENT_TYPES).toHaveLength(10);
+    // Penaltis C8: the in-play penalty is the 11th type.
+    expect(MATCH_EVENT_TYPES).toHaveLength(11);
+    expect(MATCH_EVENT_TYPES).toContain("penalty");
     expect([...seen.keys()].sort()).toEqual([...MATCH_EVENT_TYPES].sort());
-    expect(new Set(seen.values()).size).toBe(10);
+    expect(new Set(seen.values()).size).toBe(11);
   });
 });
 
@@ -966,3 +970,81 @@ describe("ajustes da substituição (ajustes-substituicao)", () => {
     expect(v).toEqual({ why: "red", playerId: keeper, pos: side.slotPos[Number(slot)] });
   });
 });
+
+describe("pênalti no jogo (penaltis)", () => {
+  const flat = (clubId: string, rating: number): TeamSheet => ({
+    clubId,
+    starters: formationSlots("4-4-2").map((position, i) => ({ id: `${clubId}-${i}`, name: `${clubId} ${i}`, position, age: 25, rating })),
+  });
+  const KICKS: readonly MatchEventType[] = ["goal", "shot_saved", "shot_missed"];
+
+  test("pênalti marcado e cobrado", () => {
+    // C1 (AC 1, AC 2, door 2): every award is followed by exactly one kick of the same side and minute.
+    const kinds = new Set<MatchEventType>();
+    let awarded = 0;
+    for (let seed = 1; seed <= 500; seed++) {
+      const { result, events } = simulateMatch(flat("H", 70), flat("A", 70), createRng(seed));
+      events.forEach((e, i) => {
+        if (e.penalty) expect(events[i - 1]?.type, `seed ${seed} min ${e.minute}`).toBe("penalty");
+        if (e.type !== "penalty") return;
+        awarded++;
+        const kick = events[i + 1]!;
+        expect(kick, `seed ${seed}`).toMatchObject({ minute: e.minute, clubId: e.clubId, penalty: true });
+        expect(KICKS).toContain(kick.type);
+        expect(kick.playerId?.startsWith(`${e.clubId}-`), `seed ${seed}`).toBe(true);
+        kinds.add(kick.type);
+        const shots = events.filter((x) => x.minute === e.minute && x.clubId === e.clubId && KICKS.includes(x.type));
+        expect(shots, `seed ${seed}`).toEqual([kick]);
+        if (kick.type === "goal") expect(result.goals).toContainEqual({ minute: kick.minute, clubId: kick.clubId, playerId: kick.playerId });
+      });
+    }
+    expect(awarded).toBeGreaterThan(0);
+    expect([...kinds].sort()).toEqual(["goal", "shot_missed", "shot_saved"]);
+  });
+
+  test("sem ninguém em campo não tem pênalti", () => {
+    // C7 (AC 9): a side with every slot empty is never awarded a penalty.
+    const away = flat("A", 70).starters;
+    const players: Record<string, LivePlayer> = Object.fromEntries(away.map((p) => [p.id, p]));
+    for (let seed = 1; seed <= 200; seed++) {
+      const home = makeSide("H", formationSlots("4-4-2"), Array<string | null>(11).fill(null), [], players);
+      const m = makeMatch("t", home, makeSide("A", formationSlots("4-4-2"), away.map((p) => p.id), [], players), 0);
+      const rng = createRng(seed);
+      for (let minute = 1; minute <= 90; minute++) stepMatch(m, minute, players, rng);
+      expect(m.events.filter((e) => e.type === "penalty" && e.clubId === "H"), `seed ${seed}`).toEqual([]);
+    }
+  });
+
+  test("cobrador escolhido bate no jogo", () => {
+    // C13 (AC 15, L-003, L-006): through startRound and sideFor, the chosen midfielder takes the
+    // user's in-play penalty while on the pitch; the automatic order would pick a forward.
+    let checked = 0;
+    for (let seed = 1; seed <= 400 && checked === 0; seed++) {
+      const state = game(1);
+      const club = state.leagues[0]!.clubs[0]!;
+      const starters = club.lineup!.starters.filter((id): id is string => !!id);
+      const mf = starters.find((id) => club.players.find((p) => p.id === id)!.position === "MF")!;
+      club.lineup = { ...club.lineup!, penaltyTaker: mf };
+      state.rngState = seed * 2654435761;
+      const live = startRound(state);
+      for (const m of live.matches) {
+        for (const side of [m.home, m.away]) expect(side.penaltyTaker).toBe(side.clubId === club.id ? mf : undefined);
+      }
+      const auto = penaltyTakers({ ...userMatchSide(live, club.id), penaltyTaker: undefined }, live.players)[0];
+      expect(auto).not.toBe(mf);
+      const m = userMatch(runToEnd(live))!;
+      const left = m.events.find((e) => e.playerId === mf && (e.type === "substitution" || e.type === "red" || e.type === "injury"));
+      m.events.forEach((e, i) => {
+        if (e.type !== "penalty" || e.clubId !== club.id || (left && left.minute <= e.minute)) return;
+        expect(m.events[i + 1]!.playerId, `seed ${seed}`).toBe(mf);
+        checked++;
+      });
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
+});
+
+function userMatchSide(live: LiveRound, clubId: string): LiveSide {
+  const m = userMatch(live)!;
+  return m.home.clubId === clubId ? m.home : m.away;
+}

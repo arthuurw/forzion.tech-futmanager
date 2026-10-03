@@ -32,6 +32,7 @@ describe("narração com nomes (correcoes-validacao)", () => {
       ["red", "Cartão vermelho! Tadeu Lima (Leões do Norte) está expulso."],
       ["injury", "Tadeu Lima (Leões do Norte) se machuca e deixa o campo."],
       ["substitution", "Substituição no Leões do Norte: sai Tadeu Lima, entra Rui Faria."],
+      ["penalty", "Pênalti para o Leões do Norte!"],
       ["penalty_scored", "Pênalti convertido por Tadeu Lima."],
       ["penalty_missed", "Tadeu Lima perde o pênalti."],
     ];
@@ -43,5 +44,27 @@ describe("narração com nomes (correcoes-validacao)", () => {
       expect(text, type).not.toContain(club.id);
       expect(text, type).not.toContain(out.id);
     }
+  });
+});
+
+describe("pênalti no jogo (penaltis)", () => {
+  test("narração do pênalti no jogo", () => {
+    // C5 (AC 7, L-005, L-008): the award and the three kicks, next to the same kinds of play.
+    const club = newGame(88).leagues[0]!.clubs[0]!;
+    Object.assign(club, { name: "Azul" });
+    const player = club.players[9]!;
+    Object.assign(player, { name: "Fulano" });
+    const ctx = narrationContext([club]);
+    const at = (type: MatchEventType, penalty: boolean): MatchEvent => ({ minute: 30, type, clubId: club.id, playerId: player.id, ...(penalty ? { penalty: true as const } : {}) });
+    const rows: [MatchEvent, string][] = [
+      [{ minute: 30, type: "penalty", clubId: club.id }, "Pênalti para o Azul!"],
+      [at("goal", true), "GOL do Azul! Fulano cobra o pênalti e marca."],
+      [at("shot_saved", true), "Fulano (Azul) cobra o pênalti e o goleiro defende!"],
+      [at("shot_missed", true), "Fulano (Azul) cobra o pênalti pra fora!"],
+      [at("goal", false), "GOL do Azul! Fulano marca."],
+      [at("shot_saved", false), "Fulano (Azul) finaliza, mas o goleiro defende."],
+      [at("shot_missed", false), "Fulano (Azul) chuta pra fora."],
+    ];
+    for (const [event, line] of rows) expect(narrate(event, ctx), `${event.type} ${event.penalty ?? ""}`).toBe(line);
   });
 });

@@ -79,7 +79,7 @@ describe("simulação de partida", () => {
       }
     }
     expect([...seen].sort()).toEqual(MATCH_EVENT_TYPES.filter((t) => t !== "substitution").sort());
-    // Each type narrates to a line distinct from the others.
-    expect(new Set(lines.values()).size).toBe(9);
+    // Each type narrates to a line distinct from the others (penaltis C8: 10 with the penalty).
+    expect(new Set(lines.values()).size).toBe(10);
   });
 });

@@ -2,6 +2,7 @@ import { userBoardGoal, userCupGoal } from "./board";
 import { nextCompetition, nextDate } from "./calendar";
 import { newGame } from "./generate";
 import { AI_FORMATION, autoLineup, formationSlots, validateLineup } from "./lineup";
+import { PENALTY_PER_CHANCE, PENALTY_SAVED_SHARE, penaltyChance } from "./live";
 import { simulateMatch, type TeamSheet } from "./match";
 import { acceptOffer, marketValue, signFreeAgent, signingFee, toggleForSale } from "./market";
 import { createRng } from "./rng";
@@ -527,4 +528,54 @@ describe("carreira longa sem usuário (correcoes-validacao)", () => {
     console.log(`C73 mediana / inicial: ${medians.map((m) => (m / initialMedian).toFixed(2)).join(", ")}`);
     for (const [k, m] of medians.entries()) expect(m, `temporada ${k + 1}`).toBeLessThanOrEqual(20 * initialMedian);
   }, 300_000);
+});
+
+describe("pênaltis no jogo (penaltis)", () => {
+  /** Per side over seeds 1..n: chances (shots + awards), awards, goals, saves and misses from the spot. */
+  function penalties(home: TeamSheet, away: TeamSheet, n: number) {
+    const side = () => ({ chances: 0, awarded: 0, scored: 0, saved: 0, missed: 0 });
+    const t: Record<string, ReturnType<typeof side>> = { [home.clubId]: side(), [away.clubId]: side() };
+    for (let seed = 1; seed <= n; seed++) {
+      for (const e of simulateMatch(home, away, createRng(seed)).events) {
+        const s = t[e.clubId]!;
+        if (e.type === "penalty") s.awarded++;
+        const shot = e.type === "goal" || e.type === "shot_saved" || e.type === "shot_missed";
+        if (shot && !e.penalty) s.chances++;
+        if (e.type === "penalty") s.chances++;
+        if (!e.penalty) continue;
+        if (e.type === "goal") s.scored++;
+        if (e.type === "shot_saved") s.saved++;
+        if (e.type === "shot_missed") s.missed++;
+      }
+    }
+    return t;
+  }
+
+  test("pênaltis por partida", () => {
+    // C2 (AC 1, AC 4, AC 5): equal sides of 70.
+    const n = 2000;
+    const t = penalties(flatSheet("H", 70), flatSheet("A", 70), n);
+    const sum = (k: "chances" | "awarded" | "scored" | "saved" | "missed") => t.H![k] + t.A![k];
+    const perMatch = sum("awarded") / n;
+    const perChance = sum("awarded") / sum("chances");
+    const conversion = sum("scored") / sum("awarded");
+    const savedShare = sum("saved") / (sum("saved") + sum("missed"));
+    console.log(`C2 pênaltis/partida ${perMatch.toFixed(3)} por chance ${perChance.toFixed(4)} conversão ${conversion.toFixed(3)} defesas ${savedShare.toFixed(3)}`);
+    expect(perMatch).toBeGreaterThanOrEqual(0.2);
+    expect(perMatch).toBeLessThanOrEqual(0.4);
+    expect(Math.abs(perChance - PENALTY_PER_CHANCE)).toBeLessThanOrEqual(0.01);
+    expect(conversion).toBeGreaterThanOrEqual(0.65);
+    expect(conversion).toBeLessThanOrEqual(0.85);
+    expect(Math.abs(savedShare - PENALTY_SAVED_SHARE)).toBeLessThanOrEqual(0.1);
+  });
+
+  test("conversão do pênalti pelo cobrador e pelo goleiro", () => {
+    // C3 (AC 3): a side of 90 against a side of 60, each converting near penaltyChance.
+    const t = penalties(flatSheet("H", 90), flatSheet("A", 60), 4000);
+    const strong = t.H!.scored / t.H!.awarded;
+    const weak = t.A!.scored / t.A!.awarded;
+    console.log(`C3 conversão 90x60 ${strong.toFixed(3)} (${t.H!.awarded}) 60x90 ${weak.toFixed(3)} (${t.A!.awarded})`);
+    expect(Math.abs(strong - penaltyChance(90, 60))).toBeLessThanOrEqual(0.06);
+    expect(Math.abs(weak - penaltyChance(60, 90))).toBeLessThanOrEqual(0.06);
+  });
 });

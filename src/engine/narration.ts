@@ -38,11 +38,13 @@ export function narrate(event: MatchEvent, ctx: NarrationContext): string {
     case "fulltime":
       return "Fim de jogo!";
     case "goal":
-      return `GOL do ${club}! ${player} marca.`;
+      return event.penalty ? `GOL do ${club}! ${player} cobra o pênalti e marca.` : `GOL do ${club}! ${player} marca.`;
     case "shot_saved":
-      return `${player} (${club}) finaliza, mas o goleiro defende.`;
+      return event.penalty ? `${player} (${club}) cobra o pênalti e o goleiro defende!` : `${player} (${club}) finaliza, mas o goleiro defende.`;
     case "shot_missed":
-      return `${player} (${club}) chuta pra fora.`;
+      return event.penalty ? `${player} (${club}) cobra o pênalti pra fora!` : `${player} (${club}) chuta pra fora.`;
+    case "penalty":
+      return `Pênalti para o ${club}!`;
     case "yellow":
       return `Cartão amarelo para ${player} (${club}).`;
     case "red":

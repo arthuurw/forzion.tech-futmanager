@@ -1,6 +1,7 @@
 import { createRng, type Rng } from "../engine/rng";
 import type { MatchEvent, MatchEventType } from "../engine/types";
 import { createAudio } from "./audio";
+import { effectsFor } from "./sfx";
 import type { EffectId } from "./backend";
 import { effects, fakeBackend, type Call, type FakeBackend } from "./test-backend";
 
@@ -243,5 +244,20 @@ describe("aba escondida (correcoes-validacao)", () => {
     doc.dispatchEvent(new Event("visibilitychange"));
     wait(10_000);
     expect(effects(backend.calls.slice(before))).toEqual([]);
+  });
+});
+
+describe("pênalti no jogo (penaltis)", () => {
+  test("som do pênalti no jogo", () => {
+    // C6 (AC 8, L-005): the award whistles; each kick sounds as its own type.
+    const table: [MatchEvent, EffectId[]][] = [
+      [{ minute: 30, type: "penalty", clubId: "u" }, ["whistle-short"]],
+      [{ minute: 30, type: "penalty", clubId: "o" }, ["whistle-short"]],
+      [{ minute: 30, type: "goal", clubId: "u", penalty: true }, ["crowd-roar", "goal-jingle"]],
+      [{ minute: 30, type: "goal", clubId: "o", penalty: true }, ["crowd-groan"]],
+      [{ minute: 30, type: "shot_saved", clubId: "u", penalty: true }, ["crowd-ooh"]],
+      [{ minute: 30, type: "shot_missed", clubId: "o", penalty: true }, ["crowd-ooh"]],
+    ];
+    for (const [event, expected] of table) expect(effectsFor(event, "u"), `${event.type} ${event.clubId}`).toEqual(expected);
   });
 });

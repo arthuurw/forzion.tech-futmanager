@@ -33,6 +33,7 @@ export function effectsFor(e: MatchEvent, userClubId: string): EffectId[] {
   switch (e.type) {
     case "kickoff":
     case "yellow":
+    case "penalty":
       return ["whistle-short"];
     case "halftime":
       return ["whistle-double"];

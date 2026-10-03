@@ -52,6 +52,9 @@ const AI_TIRED_FROM_MINUTE = 60;
  */
 const SECTOR_REFERENCE: Record<Position, number> = { GK: 1, DF: 4, MF: 4, FW: 2 };
 const SECTOR_EXPONENT = 0.5;
+/** Penaltis AC 1, AC 4: the share of chances that become a penalty, and of missed kicks the keeper saves. */
+export const PENALTY_PER_CHANCE = 0.025;
+export const PENALTY_SAVED_SHARE = 0.6;
 
 export type LivePlayer = PlayerCore & Partial<Condition>;
 
@@ -73,6 +76,8 @@ export interface LiveSide {
   isUser: boolean;
   /** Treino-evolucao AC 12: the club's training; absent = Normal. */
   training?: Training;
+  /** Penaltis AC 15: the user's chosen taker; absent = the automatic order. */
+  penaltyTaker?: string;
   formation: FormationName | null;
   /** Position each slot asks for. */
   slotPos: Position[];
@@ -135,7 +140,7 @@ export function makeSide(
   slots: (string | null)[],
   bench: string[],
   players: Record<string, LivePlayer>,
-  opts: { formation?: FormationName | null; posture?: Posture; isUser?: boolean; training?: Training } = {},
+  opts: { formation?: FormationName | null; posture?: Posture; isUser?: boolean; training?: Training; penaltyTaker?: string } = {},
 ): LiveSide {
   const fitness: Record<string, number> = {};
   const played: string[] = [];
@@ -148,6 +153,7 @@ export function makeSide(
     clubId,
     isUser: opts.isUser ?? false,
     ...(opts.training ? { training: opts.training } : {}),
+    ...(opts.penaltyTaker ? { penaltyTaker: opts.penaltyTaker } : {}),
     formation: opts.formation ?? null,
     slotPos,
     slots: [...slots],
@@ -390,8 +396,11 @@ export function stepMatch(m: LiveMatch, minute: number, players: Record<string, 
   const chance =
     BASE_CHANCE_PER_MINUTE * Math.pow(attStrength / defStrength.def, 1.5) * CREATE[attacker.posture] * CONCEDE[defender.posture];
   if (rng.next() < chance) {
-    const shooter = pickShooter(rng, attacker, players);
-    if (shooter) {
+    // Penaltis AC 1: a share of the chances is a penalty instead of a shot from open play.
+    const shooter = rng.next() < PENALTY_PER_CHANCE ? "penalty" : pickShooter(rng, attacker, players);
+    if (shooter === "penalty") {
+      inPlayPenalty(m, attacker, homeHasBall, defStrength.gk, minute, players, rng);
+    } else if (shooter) {
       if (rng.next() < ON_TARGET) {
         const p = players[shooter.id];
         const shooterRating = p ? effectiveRating(p, shooter.pos, attacker.fitness[shooter.id]) : 50;
@@ -443,12 +452,16 @@ function ownEffective(side: LiveSide, id: string, players: Record<string, LivePl
   return p ? effectiveRating(p, p.position, side.fitness[id] ?? p.fitness ?? 100) : 0;
 }
 
-/** AC 14: whoever is on the pitch at 90', FW, MF, DF, GK, strongest first within the position. */
+/**
+ * AC 14: whoever is on the pitch, FW, MF, DF, GK, strongest first within the position. Penaltis
+ * AC 15-17: the user's chosen taker goes first while on the pitch.
+ */
 export function penaltyTakers(side: LiveSide, players: Record<string, LivePlayer>): string[] {
   const rank = (id: string) => TAKER_ORDER.indexOf(players[id]?.position ?? "GK");
+  const chosen = (id: string) => (id === side.penaltyTaker ? 0 : 1);
   return onPitch(side)
     .map((o) => o.id)
-    .sort((a, b) => rank(a) - rank(b) || ownEffective(side, b, players) - ownEffective(side, a, players) || a.localeCompare(b));
+    .sort((a, b) => chosen(a) - chosen(b) || rank(a) - rank(b) || ownEffective(side, b, players) - ownEffective(side, a, players) || a.localeCompare(b));
 }
 
 export type ShootoutSide = "home" | "away";
@@ -498,6 +511,25 @@ function penaltyShootout(m: LiveMatch, players: Record<string, LivePlayer>, rng:
     return scored;
   });
   m.penalties = { home: result.home, away: result.away };
+}
+
+/**
+ * Penaltis AC 1-4: the award, then one kick by the first of `penaltyTakers` at the defending
+ * keeper (`keeperStrength`), scored with `penaltyChance`; a miss is saved or goes wide.
+ */
+function inPlayPenalty(m: LiveMatch, attacker: LiveSide, home: boolean, keeper: number, minute: number, players: Record<string, LivePlayer>, rng: Rng): void {
+  const taker = penaltyTakers(attacker, players)[0];
+  if (!taker) return;
+  m.events.push({ minute, type: "penalty", clubId: attacker.clubId });
+  const kick = { minute, clubId: attacker.clubId, playerId: taker, penalty: true as const };
+  if (rng.next() < penaltyChance(ownEffective(attacker, taker, players), keeper)) {
+    m.events.push({ ...kick, type: "goal" });
+    m.goals.push({ minute, clubId: attacker.clubId, playerId: taker });
+    if (home) m.homeGoals++;
+    else m.awayGoals++;
+  } else {
+    m.events.push({ ...kick, type: rng.next() < PENALTY_SAVED_SHARE ? "shot_saved" : "shot_missed" });
+  }
 }
 
 export function resultOf(m: LiveMatch): MatchResult {
@@ -550,7 +582,13 @@ export function sideFor(
   });
   const onField = new Set(starters.filter((id): id is string => !!id));
   const bench = club.players.filter((p) => isAvailableFor(p, competition) && !onField.has(p.id)).map((p) => p.id);
-  return makeSide(club.id, slotPos, starters, bench, players, { formation: lineup.formation, posture: lineup.posture ?? "balanced", isUser, training: club.training });
+  return makeSide(club.id, slotPos, starters, bench, players, {
+    formation: lineup.formation,
+    posture: lineup.posture ?? "balanced",
+    isUser,
+    training: club.training,
+    penaltyTaker: isUser ? lineup.penaltyTaker : undefined,
+  });
 }
 
 /** Every club of every division by id, and a snapshot of every player. */
