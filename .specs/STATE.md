@@ -47,9 +47,9 @@ Candidatas propostas em 02/10/2026 e não escolhidas ainda (o autor escolheu as 
 ## Handoff
 
 **Feature**: penaltis verificada (round 1 FAIL: cobrança contra a força mista de goleiro e defesa, `assignStarter` apagava o cobrador, C9 sem o caso «sem cobrador»; round 2 PASS 18/18, d09b5c2..fd96e98): parte das chances vira pênalti (`PENALTY_PER_CHANCE` 0,025; 0,35 por partida, 76% convertidos), narrado e com som; cobrador escolhido no Elenco em `Lineup.penaltyTaker` (AD-030), mantido em formação, postura, troca de titular e virada; abre a disputa da copa. Dez testes de seed antigos ganharam fixture novo (ver «Superseded checks» em `.specs/features/penaltis/checks.md`). Antes: ajustes-importacao, publicada
-**Where**: commits locais em `main`, ainda não publicados (push precisa do ok do autor)
+**Where**: publicado em `main` (deploy do Actions verde de 2251484, 04/10/2026); no ar em https://arthuurw.github.io/forzion.tech-futmanager/
 **In progress**: nada
-**Next step**: publicar com o ok do autor; depois escolher a próxima feature (Backlog: seleção nacional, estaduais). Pontos fracos de penaltis em `.specs/features/penaltis/verification.md` (C3 com ±0,06 sobre 254 pênaltis do lado fraco; L-005 e Swept de checks.md não citam C18)
+**Next step**: escolher a próxima feature (Backlog: seleção nacional, estaduais). Pontos fracos de penaltis em `.specs/features/penaltis/verification.md` (C3 com ±0,06 sobre 254 pênaltis do lado fraco; L-005 e Swept de checks.md não citam C18)
 **Blockers**: none
 **Uncommitted**: nenhum
 **Branch**: main
