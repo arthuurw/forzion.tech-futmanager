@@ -154,3 +154,6 @@ Achados na build: o sorteio do pênalti muda o resultado de cada seed, e os test
 - S1 = `live.ts` 32 KB + `live.test.ts` 46 KB + `balance.test.ts` 26 KB + `types.ts` 13 KB + `sfx.test.ts` 10 KB + `match.test.ts`, `narration.ts`, `narration.test.ts`, `sfx.ts` 12 KB = 139 KB ÷ 4 ≈ 35k
 - S2 entra em Elenco/store/virada: `store.test.ts` 51 KB + `rollover.test.ts` 39 KB + `Squad.test.tsx` 36 KB + `store.ts` 36 KB + `cup.test.ts` 25 KB + `saveFile.test.ts` 23 KB + `Squad.tsx` 18 KB + `rollover.ts` 15 KB + `saveFile.ts` 7 KB = 250 KB ≈ 63k; 98k no total, abaixo do budget de 150k: um builder
 - Mechanism: one builder (abaixo do budget, sem pergunta)
+- **Boundary:** C1-C8 closed at `5002fa4` (motor) and `cc9a210` (fixtures de seed); C9-C16 closed at `648ca60`
+- **Settled mid-build:** nenhuma pergunta ao autor; as trocas de fixture seguem a suposição aprovada no plano («Testes que fixam resultado de seed») e estão em `## Superseded checks of earlier features`. Medido com o motor novo: 0,348 pênalti por partida, 2,57% das chances, conversão 0,759, defesas 0,560 dos perdidos; 90×60 converte 0,904 e 60×90 0,594
+- **Abandoned:** nada
