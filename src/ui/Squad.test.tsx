@@ -731,9 +731,15 @@ describe("cobrador no elenco (penaltis)", () => {
     const user = userEvent.setup();
     const game = seededGame(4);
     const me = userClub(game)!;
+    // Round 2: no taker reads as «Automático».
+    expect("penaltyTaker" in me.lineup!).toBe(false);
+    useGame.setState({ phase: "squad", game, hasSave: true });
+    const first = render(<Squad />);
+    expect((screen.getByLabelText("Pênaltis") as HTMLSelectElement).selectedOptions[0]!.textContent).toBe("Automático");
+    first.unmount();
     const bench = me.players.find((p) => !me.lineup!.starters.includes(p.id))!;
     me.lineup = { ...me.lineup!, penaltyTaker: bench.id };
-    useGame.setState({ phase: "squad", game, hasSave: true });
+    useGame.setState({ phase: "squad", game: { ...game }, hasSave: true });
     render(<Squad />);
     const labels = [...document.querySelectorAll(".formation-controls > label")].map((l) => l.firstChild?.textContent?.trim());
     expect(labels.indexOf("Pênaltis")).toBe(labels.indexOf("Treino") + 1);

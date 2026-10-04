@@ -1130,3 +1130,25 @@ describe("cobrador na store (penaltis)", () => {
     expect(userClub(useGame.getState().game!)!.lineup!.formation).toBe("3-5-2");
   });
 });
+
+describe("cobrador na troca de titular (penaltis round 2)", () => {
+  test("cobrador mantido na troca de titular", async () => {
+    // C18 (AC 12, AC 13): swapping another starter for a bench player keeps the chosen taker.
+    resetAll();
+    const game = seededGame(10);
+    const me = userClub(game)!;
+    const taker = me.lineup!.starters.find((id) => me.players.find((p) => p.id === id)?.position === "MF")!;
+    me.lineup = { ...me.lineup!, penaltyTaker: taker };
+    await saveGame(game);
+    useGame.setState({ phase: "squad", game, hasSave: true });
+    const bench = me.players.find((p) => !me.lineup!.starters.includes(p.id) && p.position === "FW" && p.injuryRounds === 0 && p.suspendedRounds === 0)!;
+    const slot = 10;
+    expect(me.lineup!.starters[slot]).not.toBe(taker);
+    await useGame.getState().assignStarter(slot, bench.id);
+    const after = userClub(useGame.getState().game!)!.lineup!;
+    expect(after.starters[slot]).toBe(bench.id);
+    expect(after.penaltyTaker).toBe(taker);
+    const saved = await loadGame();
+    expect(saved.kind === "ok" && userClub(saved.state)!.lineup!.penaltyTaker).toBe(taker);
+  });
+});

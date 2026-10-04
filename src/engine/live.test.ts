@@ -1044,6 +1044,33 @@ describe("pênalti no jogo (penaltis)", () => {
   });
 });
 
+describe("pênalti contra o goleiro (penaltis round 2)", () => {
+  test("pênalti contra o goleiro, não contra a defesa", () => {
+    // C17 (AC 3): a keeper of 50 behind a defence of 80; a taker of 70 scores with
+    // penaltyChance(70, 50) = 0,85, not with the side's blended keeper strength (59 -> 0,805).
+    // Scripted draws: home ball, a chance, a penalty, then the kick's roll; every later draw 0,99.
+    const sheet = (clubId: string, keeper: number, others: number): LivePlayer[] =>
+      formationSlots("4-4-2").map((position, i) => ({ id: `${clubId}-${i}`, name: `${clubId} ${i}`, position, age: 25, rating: position === "GK" ? keeper : others, fitness: 100, morale: 0 }));
+    const [home, away] = [sheet("H", 70, 70), sheet("A", 50, 80)];
+    const players: Record<string, LivePlayer> = Object.fromEntries([...home, ...away].map((p) => [p.id, p]));
+    const side = (id: string, list: LivePlayer[]) => makeSide(id, formationSlots("4-4-2"), list.map((p) => p.id), [], players);
+    expect(keeperStrength(side("A", away), players)).toBe(50);
+    const cases: [number, MatchEventType][] = [
+      [0.83, "goal"],
+      [0.849, "goal"],
+      [0.851, "shot_missed"],
+    ];
+    for (const [roll, type] of cases) {
+      const draws = [0, 0, 0, roll];
+      const rng = { next: () => draws.shift() ?? 0.99, getState: () => 0 };
+      const m = makeMatch("t", side("H", home), side("A", away), 0);
+      stepMatch(m, 1, players, rng);
+      expect(m.events.map((e) => e.type), String(roll)).toEqual(["kickoff", "penalty", type]);
+      expect(m.events[2], String(roll)).toMatchObject({ clubId: "H", penalty: true });
+    }
+  });
+});
+
 function userMatchSide(live: LiveRound, clubId: string): LiveSide {
   const m = userMatch(live)!;
   return m.home.clubId === clubId ? m.home : m.away;

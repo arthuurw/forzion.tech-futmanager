@@ -655,7 +655,9 @@ export const useGame = create<GameStore>()((set, get) => {
         editUserClub(game, (club) => {
           // Correcoes-validacao AC 19, AC 20: the discipline of the next match's competition.
           const lineup = club.lineup ? assignSlot(club, club.lineup, slotIndex, playerId, nextCompetition(game)) : null;
-          return lineup ? { ...club, lineup } : club;
+          // Penaltis C18: a new starter keeps the chosen taker; only «Automático» removes it.
+          const taker = club.lineup?.penaltyTaker;
+          return lineup ? { ...club, lineup: taker ? { ...lineup, penaltyTaker: taker } : lineup } : club;
         }),
       );
     },

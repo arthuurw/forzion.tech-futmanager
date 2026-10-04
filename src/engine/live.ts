@@ -399,7 +399,8 @@ export function stepMatch(m: LiveMatch, minute: number, players: Record<string, 
     // Penaltis AC 1: a share of the chances is a penalty instead of a shot from open play.
     const shooter = rng.next() < PENALTY_PER_CHANCE ? "penalty" : pickShooter(rng, attacker, players);
     if (shooter === "penalty") {
-      inPlayPenalty(m, attacker, homeHasBall, defStrength.gk, minute, players, rng);
+      // AC 3: the kick is against the keeper alone, not the blend of keeper and defence.
+      inPlayPenalty(m, attacker, homeHasBall, keeperStrength(defender, players), minute, players, rng);
     } else if (shooter) {
       if (rng.next() < ON_TARGET) {
         const p = players[shooter.id];

@@ -3,7 +3,7 @@
 Profile: light
 Plan: `.specs/features/penaltis/plan.md`
 
-16 checks in 2 slices · 2 one-way doors · 0 open
+18 checks in 2 slices · 2 one-way doors · 0 open (C17 e C18 acrescentados depois do FAIL do Verifier, round 1)
 
 Runner: Vitest (`npx vitest run <arquivo> -t "<nome>"`); layout pelo `npm run check:layout` (Chrome headless sobre `vite preview`).
 
@@ -15,7 +15,7 @@ Lições aplicadas:
 - L-007: os casos de fora de campo têm o escolhido presente no clube, mas fora das vagas.
 - L-008: o texto da narração e o rótulo do seletor são conferidos onde aparecem.
 - L-009: os dois doors têm check (door 1: C9, C15; door 2: C1).
-- L-030: C4 roda as faixas de balanço que já existem; elas passam hoje e prendem o comportamento de antes. Todas as outras provas falham no código de antes.
+- L-030: C4 roda as faixas de balanço que já existem; elas passam hoje e prendem o comportamento de antes. Todas as outras provas falham no código de antes. No round 2, a asserção «sem cobrador mostra Automático» acrescentada ao teste de C9 já passava e prende o comportamento; C17 e C18 falhavam no código do round 1.
 
 ## Checks
 
@@ -97,6 +97,12 @@ Proof: `npx vitest run src/engine/cup.test.ts -t "cobrador escolhido abre a disp
 
 Proof: `npx vitest run src/engine/saveFile.test.ts -t "cobrador no arquivo"`
 
+**C17** - Acrescentado depois do FAIL do Verifier (round 1): C3 usa times de rating único, em que goleiro e defesa coincidem, e o código usava a força mista de goleiro e defesa. Com um goleiro de 50 atrás de uma defesa de 80 e um cobrador de 70, e os sorteios fixados (posse do mandante, chance, pênalti e então o sorteio da cobrança), o sorteio 0,83 e o 0,849 dão `goal` e o 0,851 dá `shot_missed`: a cobrança é contra `keeperStrength` = 50 (`penaltyChance(70, 50)` = 0,85), não contra a força mista 59 (0,805) (AC 3).
+Proof: `npx vitest run src/engine/live.test.ts -t "pênalti contra o goleiro, não contra a defesa"`
+
+**C18** - Acrescentado depois do FAIL do Verifier (round 1): com `lineup.penaltyTaker` definido, `assignStarter` de um reserva numa vaga de outro titular mantém o mesmo id no jogo da store e no save (AC 12, AC 13).
+Proof: `npx vitest run src/store.test.ts -t "cobrador mantido na troca de titular"`
+
 **C16** - `npm run check:layout` sai com 0, medindo a tela Elenco (`squad`, `squadDesktop`) em 400 × 700 e 1366 × 768, já com o seletor «Pênaltis» (AC 20).
 Proof: `npm run check:layout`
 
@@ -111,7 +117,8 @@ Proof: `npm run check:layout`
 | faixas de balanço de hoje (7 testes) | times iguais C4 · forte contra fraco C4 · postura ofensiva C4 · postura defensiva C4 · cartões C4 · lesões C4 · caixa equilibrado C4 | - |
 | cobrador fora de campo (6) | no banco C12 · substituído C12 · expulso C12 · lesionado C12 · id desconhecido C12 · sem escolha C12 | - |
 | quem bate (3 lugares) | jogo pela ordem C12 · jogo pela entrada C13 · disputa C14 | - |
-| caminhos da escalação que mantêm o cobrador (3) | formação C10 · postura C10 · virada C11 | - |
+| caminhos da escalação que mantêm o cobrador (4) | formação C10 · postura C10 · virada C11 · troca de titular C18 | - |
+| contra quem a cobrança é batida (2) | goleiro igual à defesa C3 · goleiro diferente da defesa C17 | - |
 | valores do seletor (2) | titular C9 · Automático C9 | - |
 | `penaltyTaker` na importação (5) | ausente C15 · texto C15 · número C15 · `null` C15 · objeto C15 | - |
 | tamanhos de tela (2) | 400 × 700 C16 · 1366 × 768 C16 | - |
@@ -139,15 +146,15 @@ Achados na build: o sorteio do pênalti muda o resultado de cada seed, e os test
 | Check | What changes | Now proven by |
 | --- | --- | --- |
 | partida-ao-vivo C46 / correcoes-validacao C61 (`live.test.ts` «todos os 10 tipos de evento…») | o conjunto passa a 11 tipos com `penalty`; o teste vira «todos os 11 tipos…» e as frases distintas passam a 11 (`match.test.ts`: 10 sem a substituição) | C8 |
-| paises C8 (`live.test.ts` «semente das ligas novas», snapshot v6) | só o campo `results` do `snapshot-v6.json` é regenerado com o motor novo (119 de 120 partidas mudam); o resto do fixture fica igual | C1 |
-| carreira-dinamica C9 (`career.test.ts` «assumir no meio da temporada») | o fixture passa da seed 3 à 27, a primeira com o 18º de meta 16 e o 5º de meta 12 depois de 13 rodadas; mesmos valores | C1 |
-| copa-nacional C63 (`migrate.test.ts` «sementes da migração da copa») | o replay da preliminar passa a usar a disponibilidade da copa, como `cupLive`: um suspenso na liga joga a copa (5 clubes da preliminar têm um agora) | C1 |
-| copa-nacional C49 (`Cup.test.tsx` «situação do usuário») | o campeão da nacional da seed 111 agora também joga a continental, e a tela abre nessa aba (copa-continental AC 16); o teste abre a aba da nacional antes de ler «Campeão» | C1 |
-| nucleo-liga-partida C34 (`End.test.tsx` «fim mostra campeão sem Jogar rodada») | o clube 1 da seed 6 é demitido antes da rodada 38 (8 de 21 jogos de teste antes, 10 de 21 agora); passa ao clube 2, conferido sem `pendingJob`; o campeão também ganhou uma copa, e as linhas «Campeão: …» são contadas como no teste ao lado | C1 |
-| ajustes-audio C5, C6 (`Live.test.tsx`, gol do usuário aos 90') | a seed 182 perdeu o gol; passa à 27, a primeira com gol do usuário aos 90' e sem parada obrigatória | C1 |
-| ajustes-audio C9 (`Live.test.tsx` «disputa de pênaltis soa pela tela ao vivo») | o confronto passa do 10º ao 4º da seed 3, o primeiro com disputa de 10 ou mais cobranças e sem parada obrigatória | C1 |
-| audio C26 / partida-ao-vivo C9 («rodada sem AudioContext», «fim da rodada ao vivo grava») | a seed 8 agora tem uma parada obrigatória do usuário, e o relógio livre não chega aos 90'; passam à seed 2, a primeira sem parada | C1 |
-| copa-continental C11 (`Live.test.tsx` «continental fecha sem tela») | a escalação do 1º clube da Série B (seed 132) fica inválida para a próxima data; passa ao 3º, o primeiro com escalação válida, fora da continental e não demitido | C1 |
+| paises C8 (`live.test.ts` «semente das ligas novas», snapshot v6) | só o campo `results` do `snapshot-v6.json` é regenerado com o motor novo (119 de 120 partidas mudam); o resto do fixture fica igual | o mesmo teste do check de origem, com o snapshot regenerado |
+| carreira-dinamica C9 (`career.test.ts` «assumir no meio da temporada») | o fixture passa da seed 3 à 27, a primeira com o 18º de meta 16 e o 5º de meta 12 depois de 13 rodadas; mesmos valores | o mesmo teste do check de origem, com o fixture novo |
+| copa-nacional C63 (`migrate.test.ts` «sementes da migração da copa») | o replay da preliminar passa a usar a disponibilidade da copa, como `cupLive`: um suspenso na liga joga a copa (5 clubes da preliminar têm um agora) | o mesmo teste do check de origem, com o fixture novo |
+| copa-nacional C49 (`Cup.test.tsx` «situação do usuário») | o campeão da nacional da seed 111 agora também joga a continental, e a tela abre nessa aba (copa-continental AC 16); o teste abre a aba da nacional antes de ler «Campeão» | o mesmo teste do check de origem, com o fixture novo |
+| nucleo-liga-partida C34 (`End.test.tsx` «fim mostra campeão sem Jogar rodada») | o clube 1 da seed 6 é demitido antes da rodada 38 (8 de 21 jogos de teste antes, 10 de 21 agora); passa ao clube 2, conferido sem `pendingJob`; o campeão também ganhou uma copa, e as linhas «Campeão: …» são contadas como no teste ao lado | o mesmo teste do check de origem, com o fixture novo |
+| ajustes-audio C5, C6 (`Live.test.tsx`, gol do usuário aos 90') | a seed 182 perdeu o gol; passa à 27, a primeira com gol do usuário aos 90' e sem parada obrigatória | o mesmo teste do check de origem, com o fixture novo |
+| ajustes-audio C9 (`Live.test.tsx` «disputa de pênaltis soa pela tela ao vivo») | o confronto passa do 10º ao 4º da seed 3, o primeiro com disputa de 10 ou mais cobranças e sem parada obrigatória | o mesmo teste do check de origem, com o fixture novo |
+| audio C26 / partida-ao-vivo C9 («rodada sem AudioContext», «fim da rodada ao vivo grava») | a seed 8 agora tem uma parada obrigatória do usuário, e o relógio livre não chega aos 90'; passam à seed 2, a primeira sem parada | o mesmo teste do check de origem, com o fixture novo |
+| copa-continental C11 (`Live.test.tsx` «continental fecha sem tela») | a escalação do 1º clube da Série B (seed 132) fica inválida para a próxima data; passa ao 3º, o primeiro com escalação válida, fora da continental e não demitido | o mesmo teste do check de origem, com o fixture novo |
 
 ## Handoff
 
@@ -157,3 +164,4 @@ Achados na build: o sorteio do pênalti muda o resultado de cada seed, e os test
 - **Boundary:** C1-C8 closed at `5002fa4` (motor) and `cc9a210` (fixtures de seed); C9-C16 closed at `648ca60`
 - **Settled mid-build:** nenhuma pergunta ao autor; as trocas de fixture seguem a suposição aprovada no plano («Testes que fixam resultado de seed») e estão em `## Superseded checks of earlier features`. Medido com o motor novo: 0,348 pênalti por partida, 2,57% das chances, conversão 0,759, defesas 0,560 dos perdidos; 90×60 converte 0,904 e 60×90 0,594
 - **Abandoned:** nada
+- **Boundary (round 2):** gaps do Verifier (round 1): cobrança contra `keeperStrength` (C17), `assignStarter` mantém o cobrador (C18), C9 com o caso «sem cobrador»; coluna «Now proven by» do superseded corrigida
