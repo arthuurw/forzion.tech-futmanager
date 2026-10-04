@@ -72,6 +72,7 @@ export function Squad() {
   const setFormation = useGame((s) => s.setFormation);
   const setPosture = useGame((s) => s.setPosture);
   const setTraining = useGame((s) => s.setTraining);
+  const setPenaltyTaker = useGame((s) => s.setPenaltyTaker);
   const assignStarter = useGame((s) => s.assignStarter);
   const playRound = useGame((s) => s.playRound);
   const toggleForSale = useGame((s) => s.toggleForSale);
@@ -97,6 +98,9 @@ export function Squad() {
   const league = userLeague(game);
   const lineup = club.lineup;
   const training: Training = club.training ?? "normal";
+  // Penaltis AC 10, AC 11: the eleven in slot order; a taker who is not one of them reads as Automático.
+  const starters = (lineup?.starters ?? []).flatMap((id) => club.players.filter((p) => p.id === id));
+  const taker = starters.some((p) => p.id === lineup?.penaltyTaker) ? lineup!.penaltyTaker! : "";
   // Copa-nacional AC 23, 29, ajustes-4a AC 1-3: availability is for the user's next match's competition.
   const competition = nextCompetition(game);
   const isAvailable = (p: (typeof club.players)[number]) => isAvailableFor(p, competition);
@@ -175,6 +179,17 @@ export function Squad() {
                   {TRAININGS.map((t) => (
                     <option key={t} value={t}>
                       {TRAINING_LABEL[t]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="formation-row">
+                Pênaltis
+                <select aria-label="Pênaltis" value={taker} onChange={(e) => void setPenaltyTaker(e.target.value || null)}>
+                  <option value="">Automático</option>
+                  {starters.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
                     </option>
                   ))}
                 </select>

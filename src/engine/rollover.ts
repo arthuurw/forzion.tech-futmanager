@@ -281,7 +281,8 @@ export function nextSeason(input: GameState, jobClubId?: string): { state: GameS
   if (user) user.lineup = autoLineup(user, (!moved && user.lineup?.formation) || AI_FORMATION);
   if (user && !moved && input.leagues.length) {
     const before = allClubs(input).find((c) => c.id === userId)?.lineup;
-    if (before && user.lineup) user.lineup = { ...user.lineup, posture: before.posture };
+    // Penaltis AC 14: the chosen penalty taker stays with the club.
+    if (before && user.lineup) user.lineup = { ...user.lineup, posture: before.posture, ...(before.penaltyTaker ? { penaltyTaker: before.penaltyTaker } : {}) };
   }
 
   // Copa-nacional AC 49: cup discipline starts clean for everyone.

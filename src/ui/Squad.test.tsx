@@ -723,3 +723,39 @@ describe("empréstimo no Elenco (emprestimos)", () => {
     }
   });
 });
+
+describe("cobrador no elenco (penaltis)", () => {
+  test("seletor de pênaltis", async () => {
+    // C9 (AC 10-12, L-008): after «Treino»; «Automático» then the eleven in slot order; a bench
+    // player reads as «Automático»; each choice saved, «Automático» removes the field.
+    const user = userEvent.setup();
+    const game = seededGame(4);
+    const me = userClub(game)!;
+    const bench = me.players.find((p) => !me.lineup!.starters.includes(p.id))!;
+    me.lineup = { ...me.lineup!, penaltyTaker: bench.id };
+    useGame.setState({ phase: "squad", game, hasSave: true });
+    render(<Squad />);
+    const labels = [...document.querySelectorAll(".formation-controls > label")].map((l) => l.firstChild?.textContent?.trim());
+    expect(labels.indexOf("Pênaltis")).toBe(labels.indexOf("Treino") + 1);
+    const select = screen.getByLabelText("Pênaltis") as HTMLSelectElement;
+    const starters = me.lineup.starters.map((id) => me.players.find((p) => p.id === id)!);
+    expect([...select.options].map((o) => o.textContent)).toEqual(["Automático", ...starters.map((p) => p.name)]);
+    expect(select.selectedOptions[0]!.textContent).toBe("Automático");
+
+    const mf = starters.find((p) => p.position === "MF")!;
+    await user.selectOptions(select, mf.name);
+    expect(userClub(useGame.getState().game!)!.lineup!.penaltyTaker).toBe(mf.id);
+    expect(select.selectedOptions[0]!.textContent).toBe(mf.name);
+    await waitFor(async () => {
+      const saved = await loadGame();
+      expect(saved.kind === "ok" && userClub(saved.state)!.lineup!.penaltyTaker).toBe(mf.id);
+    });
+
+    await user.selectOptions(select, "Automático");
+    expect("penaltyTaker" in userClub(useGame.getState().game!)!.lineup!).toBe(false);
+    await waitFor(async () => {
+      const saved = await loadGame();
+      expect(saved.kind === "ok" && "penaltyTaker" in userClub(saved.state)!.lineup!).toBe(false);
+    });
+  });
+});

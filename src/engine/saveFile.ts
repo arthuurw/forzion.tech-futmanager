@@ -70,6 +70,7 @@ function hasGameShape(state: unknown): state is GameState {
   return (
     user !== undefined &&
     isObject(user.lineup) &&
+    (user.lineup.penaltyTaker === undefined || typeof user.lineup.penaltyTaker === "string") &&
     hasJobShape(state.pendingJob, clubIds, userClubId) &&
     (state.boardWarnings === undefined || isIntIn(state.boardWarnings, 0, BOARD_PATIENCE - 1)) &&
     (state.difficulty === undefined || DIFFICULTIES.includes(state.difficulty as Difficulty)) &&

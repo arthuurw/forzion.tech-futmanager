@@ -413,3 +413,21 @@ describe("dificuldade no arquivo (dificuldade)", () => {
     }
   });
 });
+
+describe("cobrador no arquivo (penaltis)", () => {
+  test("cobrador no arquivo", () => {
+    // C15 (AC 19, door 1): absent or text imports unchanged; any other type is refused.
+    const g = withClub(9);
+    const lineup = g.leagues[0]!.clubs[0]!.lineup!;
+    expect("penaltyTaker" in lineup).toBe(false);
+    expect(decodeSaveFile(encodeSaveFile(g, ISO))).toEqual({ kind: "ok", state: g });
+    const withTaker = (penaltyTaker: unknown) => {
+      const s = JSON.parse(JSON.stringify(g)) as GameState;
+      (s.leagues[0]!.clubs[0]!.lineup as unknown as Record<string, unknown>).penaltyTaker = penaltyTaker;
+      return s;
+    };
+    const text = withTaker("qualquer-id");
+    expect(decodeSaveFile(encodeSaveFile(text, ISO))).toEqual({ kind: "ok", state: text });
+    for (const bad of [7, null, {}]) expect(decodeSaveFile(envelope(withTaker(bad))), JSON.stringify(bad)).toEqual({ kind: "malformed" });
+  });
+});

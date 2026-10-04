@@ -532,3 +532,75 @@ describe("copa e países (paises)", () => {
     }
   }, 60_000);
 });
+
+describe("cobrador escolhido (penaltis)", () => {
+  const RATINGS: [string, Position, number][] = [
+    ["gk", "GK", 50],
+    ["df72", "DF", 72],
+    ["df68", "DF", 68],
+    ["df60", "DF", 60],
+    ["df55", "DF", 55],
+    ["mf78", "MF", 78],
+    ["mf70", "MF", 70],
+    ["mf65", "MF", 65],
+    ["fw80", "FW", 80],
+    ["fw75", "FW", 75],
+    ["fw90", "FW", 90],
+    ["fw85", "FW", 85],
+  ];
+  const players: Record<string, LivePlayer> = {};
+  for (const p of ["H-", "A-"]) for (const [id, position, rating] of RATINGS) players[p + id] = { id: p + id, name: p + id, position, age: 25, rating };
+  const ELEVEN = ["gk", "df72", "df68", "df60", "df55", "mf78", "mf70", "mf65", "fw80", "fw75", "fw90"];
+  const MF70 = ELEVEN.indexOf("mf70");
+  /** 4-3-3 with the FW 85 on the bench; `taker` is the chosen one, or none. */
+  const side = (p: string, taker?: string) =>
+    makeSide(p === "H-" ? "H" : "A", formationSlots("4-3-3"), ELEVEN.map((id) => p + id), [p + "fw85"], players, taker ? { penaltyTaker: taker } : {});
+  const h = (ids: string[]) => ids.map((id) => "H-" + id);
+  const AUTO = h(["fw90", "fw80", "fw75", "mf78", "mf70", "mf65", "df72", "df68", "df60", "df55", "gk"]);
+
+  test("cobrador escolhido na ordem", () => {
+    // C12 (AC 15, AC 16, AC 18, L-006, L-007): the chosen midfielder first while on the pitch; off it,
+    // for any reason, exactly the automatic order.
+    expect(penaltyTakers(side("H-", "H-mf70"), players)).toEqual(h(["mf70", "fw90", "fw80", "fw75", "mf78", "mf65", "df72", "df68", "df60", "df55", "gk"]));
+    const subbed = side("H-", "H-mf70");
+    subbed.slots[MF70] = "H-fw85";
+    subbed.subbedOff = ["H-mf70"];
+    const sentOff = side("H-", "H-mf70");
+    sentOff.slots[MF70] = null;
+    sentOff.sentOff = ["H-mf70"];
+    sentOff.vacancy = { [MF70]: { why: "red", playerId: "H-mf70" } };
+    const injured = side("H-", "H-mf70");
+    injured.slots[MF70] = null;
+    injured.injured = { "H-mf70": 2 };
+    injured.vacancy = { [MF70]: { why: "injury", playerId: "H-mf70" } };
+    const without = AUTO.filter((id) => id !== "H-mf70");
+    const cases: [string, ReturnType<typeof side>, string[]][] = [
+      ["no banco", side("H-", "H-fw85"), AUTO],
+      ["substituído", subbed, h(["fw90", "fw85", "fw80", "fw75", "mf78", "mf65", "df72", "df68", "df60", "df55", "gk"])],
+      ["expulso", sentOff, without],
+      ["lesionado", injured, without],
+      ["id desconhecido", side("H-", "nobody"), AUTO],
+      ["sem escolha", side("H-"), AUTO],
+    ];
+    for (const [name, s, expected] of cases) expect(penaltyTakers(s, players), name).toEqual(expected);
+    // AC 18: a side built without the option, as every AI side is, has no chosen taker.
+    expect("penaltyTaker" in side("A-")).toBe(false);
+  });
+
+  test("cobrador escolhido abre a disputa", () => {
+    // C14 (AC 17): the chosen midfielder takes the home side's first kick; the next nine follow the
+    // automatic order without him.
+    let found: LiveMatch | null = null;
+    for (let seed = 1; seed <= 5000 && !found; seed++) {
+      const m = makeMatch("t", side("H-", "H-mf70"), side("A-"), 0, "cup-nat");
+      m.knockout = true;
+      const slots = [...m.home.slots];
+      stepMatch(m, 90, players, createRng(seed));
+      const homeKicks = m.events.filter((e) => e.clubId === "H" && e.type.startsWith("penalty_"));
+      if (m.penalties && homeKicks.length >= 10 && m.home.slots.every((id, i) => id === slots[i])) found = m;
+    }
+    expect(found).not.toBeNull();
+    const takers = found!.events.filter((e) => e.clubId === "H" && e.type.startsWith("penalty_")).map((e) => e.playerId);
+    expect(takers.slice(0, 10)).toEqual(h(["mf70", "fw90", "fw80", "fw75", "mf78", "mf65", "df72", "df68", "df60", "df55"]));
+  });
+});

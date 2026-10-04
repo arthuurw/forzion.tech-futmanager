@@ -217,6 +217,8 @@ export interface GameStore {
   setPosture(posture: Posture): Promise<void>;
   /** Treino-evolucao AC 13: the user's club's training, saved like the lineup. */
   setTraining(training: Training): Promise<void>;
+  /** Penaltis AC 12: the user's penalty taker; null = Automático. */
+  setPenaltyTaker(playerId: string | null): Promise<void>;
   assignStarter(slotIndex: number, playerId: string): Promise<void>;
   /**
    * Plays the next date: a league round or a cup phase the user plays opens the live screen; a cup
@@ -620,7 +622,12 @@ export const useGame = create<GameStore>()((set, get) => {
     setFormation(formation) {
       // Correcoes-validacao AC 21: filled for the next match's competition, keeping the posture.
       return editLineup((game) =>
-        editUserClub(game, (club) => ({ ...club, lineup: autoLineup(club, formation, club.lineup?.posture ?? "balanced", 0, nextCompetition(game)) })),
+        editUserClub(game, (club) => {
+          const lineup = autoLineup(club, formation, club.lineup?.posture ?? "balanced", 0, nextCompetition(game));
+          // Penaltis AC 13: the chosen taker survives a new formation.
+          const taker = club.lineup?.penaltyTaker;
+          return { ...club, lineup: taker ? { ...lineup, penaltyTaker: taker } : lineup };
+        }),
       );
     },
 
@@ -630,6 +637,17 @@ export const useGame = create<GameStore>()((set, get) => {
 
     setTraining(training) {
       return editLineup((game) => editUserClub(game, (club) => ({ ...club, training })));
+    },
+
+    setPenaltyTaker(playerId) {
+      return editLineup((game) =>
+        editUserClub(game, (club) => {
+          if (!club.lineup) return club;
+          const { penaltyTaker: _, ...lineup } = club.lineup;
+          void _;
+          return { ...club, lineup: playerId ? { ...lineup, penaltyTaker: playerId } : lineup };
+        }),
+      );
     },
 
     assignStarter(slotIndex, playerId) {

@@ -771,3 +771,16 @@ describe("empréstimos na virada (emprestimos)", () => {
     expect(clubOf(state, b.id).players.map((p) => p.id)).not.toContain(p1.id);
   }, 60_000);
 });
+
+describe("cobrador na virada (penaltis)", () => {
+  test("cobrador na virada", () => {
+    // C11 (AC 14): the user stays at the club, and the chosen taker stays in the lineup.
+    const s = ended();
+    const me = userOf(s);
+    const taker = me.players.find((p) => p.position === "MF")!.id;
+    me.lineup = { ...me.lineup!, penaltyTaker: taker };
+    const next = nextSeason(s).state;
+    expect(next.userClubId).toBe(s.userClubId);
+    expect(userOf(next).lineup!.penaltyTaker).toBe(taker);
+  });
+});

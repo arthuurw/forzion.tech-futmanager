@@ -1106,3 +1106,27 @@ describe("notícias pela store (noticias)", () => {
     expect(useGame.getState().game!.news).toEqual(engine);
   }, 60_000);
 });
+
+describe("cobrador na store (penaltis)", () => {
+  test("cobrador mantido na formação e na postura", async () => {
+    // C10 (AC 13): a new formation and a new posture keep the chosen taker, in the store and saved.
+    resetAll();
+    const game = seededGame(10);
+    const me = userClub(game)!;
+    const taker = me.lineup!.starters.find((id) => me.players.find((p) => p.id === id)?.position === "MF")!;
+    me.lineup = { ...me.lineup!, penaltyTaker: taker };
+    await saveGame(game);
+    useGame.setState({ phase: "squad", game, hasSave: true });
+    const steps: [string, () => Promise<void>][] = [
+      ["formação", () => useGame.getState().setFormation("3-5-2")],
+      ["postura", () => useGame.getState().setPosture("attacking")],
+    ];
+    for (const [name, change] of steps) {
+      await change();
+      expect(userClub(useGame.getState().game!)!.lineup!.penaltyTaker, name).toBe(taker);
+      const saved = await loadGame();
+      expect(saved.kind === "ok" && userClub(saved.state)!.lineup!.penaltyTaker, name).toBe(taker);
+    }
+    expect(userClub(useGame.getState().game!)!.lineup!.formation).toBe("3-5-2");
+  });
+});
