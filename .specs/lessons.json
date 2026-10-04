@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 36,
+  "next_id": 38,
   "lessons": [
     {
       "id": "L-001",
@@ -650,6 +650,42 @@
       ],
       "created": "2026-10-03T01:58:59Z",
       "last_seen": "2026-10-03T01:58:59Z"
+    },
+    {
+      "id": "L-036",
+      "key": "spec_deviation::when a claim names one input among blended ones prove it with a fixture where they differ never with equal ratings that make them coincide",
+      "text": "When a claim names one input among blended ones, prove it with a fixture where they differ, never with equal ratings that make them coincide.",
+      "signal": "spec_deviation",
+      "scope": "checks",
+      "status": "candidate",
+      "features": [
+        "penaltis"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "AC 3 / src/engine/live.ts:402 (checks)"
+      ],
+      "created": "2026-10-04T00:16:28Z",
+      "last_seen": "2026-10-04T00:16:28Z"
+    },
+    {
+      "id": "L-037",
+      "key": "ac_gap::a new optional field on a persisted object needs a check for every action that rebuilds that object found by grepping its writers",
+      "text": "A new optional field on a persisted object needs a check for every action that rebuilds that object, found by grepping its writers.",
+      "signal": "ac_gap",
+      "scope": "checks",
+      "status": "candidate",
+      "features": [
+        "penaltis"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "AC 12 / src/store.ts:657 (checks)"
+      ],
+      "created": "2026-10-04T00:16:28Z",
+      "last_seen": "2026-10-04T00:16:28Z"
     }
   ]
 }

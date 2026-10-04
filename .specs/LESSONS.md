@@ -222,6 +222,18 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: verification.md Coverage / src/engine/saveFile.test.ts:259-282 (checks)
 - last seen: 2026-10-03T01:58:59Z
 
+### L-036 - When a claim names one input among blended ones, prove it with a fixture where they differ, never with equal ratings that make them coincide.
+- signal: `spec_deviation` · recurrence: 1 feature(s) · scope: `checks` · harmful: 0
+- features: penaltis
+- evidence: AC 3 / src/engine/live.ts:402 (checks)
+- last seen: 2026-10-04T00:16:28Z
+
+### L-037 - A new optional field on a persisted object needs a check for every action that rebuilds that object, found by grepping its writers.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `checks` · harmful: 0
+- features: penaltis
+- evidence: AC 12 / src/store.ts:657 (checks)
+- last seen: 2026-10-04T00:16:28Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

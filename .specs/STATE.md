@@ -43,14 +43,13 @@ Candidatas propostas em 02/10/2026 e não escolhidas ainda (o autor escolheu as 
 | --- | --- | --- | --- |
 | Seleção nacional | convite para treinar a seleção com reputação alta; convocação e jogos em datas próprias, como no Brasfoot clássico | grande | jogador ganha nacionalidade, calendário à parte, competição nova |
 | Estaduais | campeonato estadual curto no começo da temporada, antes da liga | grande | mexe no calendário de 44 datas e no balanço das 5 temporadas |
-| Pênaltis durante o jogo e cobrador | pênalti dentro dos 90 minutos (hoje só a disputa de copa), cobrador escolhido na escalação | média | motor da partida (AD-007) e balanço |
 
 ## Handoff
 
-**Feature**: ajustes-importacao verificada (round 1 PASS 5/5, e66b3c7..7b4c807): o teto de empréstimo do clube escolhido é `2 ×` o caixa já ajustado pelo nível (`LOAN_LIMIT_CASH`); a importação recusa como `malformed` `pendingJob.clubIds` vazio, `boardWarnings` fora de 0..3 e, em notícias e carreira, `season`/`round` abaixo de 1 (carreira: `round` abaixo de 0), `phase` abaixo de 0, `rounds` abaixo de 1, `warnings` fora de 1..3, `amount` negativo e `playerName` em branco. Antes: validacao-importacao, offline-instalar (AD-027), noticias (AD-028) e dificuldade (AD-029), publicadas
-**Where**: publicado em `main` (deploy do Actions verde de d09b5c2, 03/10/2026)
-**In progress**: penaltis - plano aprovado pelo autor, checks escritos, build em andamento
-**Next step**: build de penaltis (C1-C16) e Verifier. Pontos fracos de ajustes-importacao em `.specs/features/ajustes-importacao/verification.md` (dois aceites de borda de C4 não mudam nada; o «outro clube» de C1 sai de `leagues[0]` por causa da seed fixa)
+**Feature**: penaltis verificada (round 1 FAIL: cobrança contra a força mista de goleiro e defesa, `assignStarter` apagava o cobrador, C9 sem o caso «sem cobrador»; round 2 PASS 18/18, d09b5c2..fd96e98): parte das chances vira pênalti (`PENALTY_PER_CHANCE` 0,025; 0,35 por partida, 76% convertidos), narrado e com som; cobrador escolhido no Elenco em `Lineup.penaltyTaker` (AD-030), mantido em formação, postura, troca de titular e virada; abre a disputa da copa. Dez testes de seed antigos ganharam fixture novo (ver «Superseded checks» em `.specs/features/penaltis/checks.md`). Antes: ajustes-importacao, publicada
+**Where**: commits locais em `main`, ainda não publicados (push precisa do ok do autor)
+**In progress**: nada
+**Next step**: publicar com o ok do autor; depois escolher a próxima feature (Backlog: seleção nacional, estaduais). Pontos fracos de penaltis em `.specs/features/penaltis/verification.md` (C3 com ±0,06 sobre 254 pênaltis do lado fraco; L-005 e Swept de checks.md não citam C18)
 **Blockers**: none
 **Uncommitted**: nenhum
 **Branch**: main
